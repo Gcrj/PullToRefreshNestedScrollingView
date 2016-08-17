@@ -7,7 +7,6 @@ import android.support.v4.widget.ScrollerCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -44,13 +43,13 @@ public class PullToRefreshNestedScrollingView extends ViewGroup implements Neste
     }
 
     public void onRefreshComplete() {
-        Log.e("aa", "onRefreshComplete");
         if (isRefreshing) {
             isRefreshing = false;
             nestedScrolled = false;
 
             if (getScrollY() <= mHeaderHeight) {
-                scrollTo(0, mHeaderHeight);
+                mScroller.startScroll(0, getScrollY(), 0, mHeaderHeight - getScrollY());
+                invalidate();
             }
         }
     }
@@ -96,16 +95,6 @@ public class PullToRefreshNestedScrollingView extends ViewGroup implements Neste
 
     @Override
     public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-//        if (dy < 0 && getScrollY() > 0 && getScrollY() <= mHeaderHeight) {
-//            int diff = getScrollY();
-//            if (-dy < diff) {
-//                consumed[1] = dy;
-//                scrollBy(0, dy);
-//            } else {
-//                consumed[1] = dy + diff;
-//                scrollBy(0, -diff);
-//            }
-//        } else
         if (dy > 0 && getScrollY() < mHeaderHeight) {
             int diff = mHeaderHeight - getScrollY();
             if (dy < diff) {
@@ -147,14 +136,6 @@ public class PullToRefreshNestedScrollingView extends ViewGroup implements Neste
                 }
             }
         }
-//        else if (dyUnconsumed > 0 && getScrollY() < mHeaderHeight) {
-//            int diff = mHeaderHeight - getScrollY();
-//            if (dyUnconsumed < diff) {
-//                scrollBy(0, dyUnconsumed);
-//            } else {
-//                scrollBy(0, diff);
-//            }
-//        }
     }
 
     @Override
@@ -166,11 +147,19 @@ public class PullToRefreshNestedScrollingView extends ViewGroup implements Neste
 
         if (getScrollY() > 0 && getScrollY() < mHeaderHeight) {
             nestedScrolled = false;
-            scrollTo(0, mHeaderHeight);
+            mScroller.startScroll(0, getScrollY(), 0, mHeaderHeight - getScrollY());
+            invalidate();
         } else if (((LinearLayoutManager) mRecyclerView.getLayoutManager()).findFirstCompletelyVisibleItemPosition() == 0 && mOnRefreshListener != null) {
             isRefreshing = true;
             mOnRefreshListener.onRefresh();
-            Log.e("aa", "onRefresh");
+        }
+    }
+
+    @Override
+    public void computeScroll() {
+        if (mScroller.computeScrollOffset()) {
+            scrollTo(0, mScroller.getCurrY());
+            invalidate();
         }
     }
 }
